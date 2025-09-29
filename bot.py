@@ -12,6 +12,7 @@ logging.basicConfig(level=logging.INFO)
 # Получаем из переменных окружения
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 CHAT_ID = os.getenv('CHAT_ID')
+TOPIC_ID = 865
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
@@ -29,6 +30,7 @@ async def send_morning_poll():
     try:
         await bot.send_poll(
             chat_id=CHAT_ID,
+            message_thread_id=TOPIC_ID,
             question=question,
             options=options,
             is_anonymous=False,
@@ -38,10 +40,18 @@ async def send_morning_poll():
     except Exception as e:
         logging.error(f"❌ Ошибка отправки опроса: {e}")
 
+
 @dp.message(Command("getid"))
 async def get_chat_id(message: types.Message):
     chat_id = message.chat.id
-    await message.reply(f"Chat ID этой группы: {chat_id}")
+    topic_id = message.message_thread_id
+    reply_text = f"Chat ID: {chat_id}"
+    if topic_id:
+        reply_text += f"\nTopic ID: {topic_id}"
+    else:
+        reply_text += "\nTopic ID: нет (обычная группа)"
+    await message.reply(reply_text)
+    logger.info(f"Запрошен Chat ID: {chat_id}, Topic ID: {topic_id}")
 
 async def main():
     # Проверка переменных
