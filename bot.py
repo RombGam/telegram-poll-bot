@@ -59,7 +59,7 @@ async def manual_poll(message: types.Message):
     logger.info(f"Получена команда /poll от пользователя {message.from_user.id}")
     try:
         await send_morning_poll()
-        await message.reply("Опрос отправлен!")
+       
         logger.info("Опрос успешно отправлен по команде /poll")
     except Exception as e:
         error_msg = f"Ошибка при отправке опроса: {e}"
