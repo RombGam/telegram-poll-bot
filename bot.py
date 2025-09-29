@@ -54,14 +54,14 @@ async def main():
         me = await bot.get_me()
         logging.info(f"✅ Бот @{me.username} запущен!")
         
-        # Настройка планировщика - отправка каждый день в 10:22 по Москве
+        # Настройка планировщика - отправка каждый день в 8:00 по Москве
         scheduler.add_job(
             send_morning_poll,
-            trigger=CronTrigger(hour=7, minute=22),  # 10:22 по Москве (UTC+3)
+            trigger=CronTrigger(hour=5, minute=0),  # 8:00 по Москве (UTC+3)
             misfire_grace_time=300
         )
         scheduler.start()
-        logging.info("⏰ Планировщик запущен - опрос будет в 10:22 по Москве")
+        logging.info("⏰ Планировщик запущен - опрос будет в 8:00 по Москве")
         
         # Тестовая отправка при запуске
         await send_morning_poll()
