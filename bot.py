@@ -1,0 +1,79 @@
+import os
+import asyncio
+from aiogram import Bot, Dispatcher, types
+from aiogram.filters import Command
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
+import pytz
+import logging
+
+logging.basicConfig(level=logging.INFO)
+
+# Получаем из переменных окружения
+BOT_TOKEN = os.getenv('BOT_TOKEN')
+CHAT_ID = os.getenv('CHAT_ID')
+
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher()
+scheduler = AsyncIOScheduler(timezone=pytz.timezone("Europe/Moscow"))
+
+async def send_morning_poll():
+    question = "Сегодня"
+    options = [
+        "я есть",
+        "нет по уважу", 
+        "нет по неуважу",
+        "опаздываю"
+    ]
+    
+    try:
+        await bot.send_poll(
+            chat_id=CHAT_ID,
+            question=question,
+            options=options,
+            is_anonymous=False,
+            allows_multiple_answers=False
+        )
+        logging.info("✅ Опрос отправлен успешно!")
+    except Exception as e:
+        logging.error(f"❌ Ошибка отправки опроса: {e}")
+
+@dp.message(Command("getid"))
+async def get_chat_id(message: types.Message):
+    chat_id = message.chat.id
+    await message.reply(f"Chat ID этой группы: {chat_id}")
+
+async def main():
+    # Проверка переменных
+    if not BOT_TOKEN or not CHAT_ID:
+        logging.error("❌ Не установлены BOT_TOKEN или CHAT_ID")
+        return
+        
+    try:
+        # Проверка подключения
+        me = await bot.get_me()
+        logging.info(f"✅ Бот @{me.username} запущен!")
+        
+        # Настройка планировщика - отправка каждый день в 10:22 по Москве
+        scheduler.add_job(
+            send_morning_poll,
+            trigger=CronTrigger(hour=7, minute=22),  # 10:22 по Москве (UTC+3)
+            misfire_grace_time=300
+        )
+        scheduler.start()
+        logging.info("⏰ Планировщик запущен - опрос будет в 10:22 по Москве")
+        
+        # Тестовая отправка при запуске
+        await send_morning_poll()
+        
+        await dp.start_polling(bot)
+        
+    except Exception as e:
+        logging.error(f"❌ Ошибка: {e}")
+    finally:
+        if scheduler.running:
+            scheduler.shutdown()
+        await bot.session.close()
+
+if __name__ == "__main__":
+    asyncio.run(main())
