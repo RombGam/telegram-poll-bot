@@ -8,6 +8,7 @@ import pytz
 import logging
 
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger()  # Добавляем logger
 
 # Получаем из переменных окружения
 BOT_TOKEN = os.getenv('BOT_TOKEN')
@@ -36,10 +37,9 @@ async def send_morning_poll():
             is_anonymous=False,
             allows_multiple_answers=False
         )
-        logging.info("✅ Опрос отправлен успешно!")
+        logger.info("✅ Опрос отправлен успешно!")
     except Exception as e:
-        logging.error(f"❌ Ошибка отправки опроса: {e}")
-
+        logger.error(f"❌ Ошибка отправки опроса: {e}")
 
 @dp.message(Command("getid"))
 async def get_chat_id(message: types.Message):
@@ -53,31 +53,10 @@ async def get_chat_id(message: types.Message):
     await message.reply(reply_text)
     logger.info(f"Запрошен Chat ID: {chat_id}, Topic ID: {topic_id}")
 
-async def main():
-    # Проверка переменных
-    if not BOT_TOKEN or not CHAT_ID:
-        logging.error("❌ Не установлены BOT_TOKEN или CHAT_ID")
-        return
-        
-    try:
-        # Проверка подключения
-        me = await bot.get_me()
-        logging.info(f"✅ Бот @{me.username} запущен!")
-        
-        # Настройка планировщика - отправка каждый день в 8:00 по Москве
-        scheduler.add_job(
-            send_morning_poll,
-            trigger=CronTrigger(hour=5, minute=0),  # 8:00 по Москве (UTC+3)
-            misfire_grace_time=300
-        )
-        scheduler.start()
-        logging.info("⏰ Планировщик запущен - опрос будет в 8:00 по Москве")
-        
-        # Тестовая отправка при запуске
-        @dp.message(Command("poll"))
+# КОМАНДА POOL ДОЛЖНА БЫТЬ ВНЕ ФУНКЦИИ MAIN!
+@dp.message(Command("poll"))
 async def manual_poll(message: types.Message):
-    logger.info(
-        f"Получена команда /poll от пользователя {message.from_user.id}")
+    logger.info(f"Получена команда /poll от пользователя {message.from_user.id}")
     try:
         await send_morning_poll()
         await message.reply("Опрос отправлен!")
@@ -86,11 +65,34 @@ async def manual_poll(message: types.Message):
         error_msg = f"Ошибка при отправке опроса: {e}"
         logger.error(error_msg)
         await message.reply(f"Ошибка: {e}")
+
+async def main():
+    # Проверка переменных
+    if not BOT_TOKEN or not CHAT_ID:
+        logger.error("❌ Не установлены BOT_TOKEN или CHAT_ID")
+        return
+        
+    try:
+        # Проверка подключения
+        me = await bot.get_me()
+        logger.info(f"✅ Бот @{me.username} запущен!")
+        
+        # Настройка планировщика - отправка каждый день в 8:00 по Москве
+        scheduler.add_job(
+            send_morning_poll,
+            trigger=CronTrigger(hour=5, minute=0),  # 8:00 по Москве (UTC+3)
+            misfire_grace_time=300
+        )
+        scheduler.start()
+        logger.info("⏰ Планировщик запущен - опрос будет в 8:00 по Москве")
+        
+        # Тестовая отправка при запуске
+        await send_morning_poll()
         
         await dp.start_polling(bot)
         
     except Exception as e:
-        logging.error(f"❌ Ошибка: {e}")
+        logger.error(f"❌ Ошибка: {e}")
     finally:
         if scheduler.running:
             scheduler.shutdown()
