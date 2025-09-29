@@ -74,7 +74,18 @@ async def main():
         logging.info("⏰ Планировщик запущен - опрос будет в 8:00 по Москве")
         
         # Тестовая отправка при запуске
+        @dp.message(Command("poll"))
+async def manual_poll(message: types.Message):
+    logger.info(
+        f"Получена команда /poll от пользователя {message.from_user.id}")
+    try:
         await send_morning_poll()
+        await message.reply("Опрос отправлен!")
+        logger.info("Опрос успешно отправлен по команде /poll")
+    except Exception as e:
+        error_msg = f"Ошибка при отправке опроса: {e}"
+        logger.error(error_msg)
+        await message.reply(f"Ошибка: {e}")
         
         await dp.start_polling(bot)
         
